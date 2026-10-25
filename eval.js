@@ -1,10 +1,8 @@
-// eval.js starter. Fill in the four TODOs, then run: node eval.js
-// You should not need any libraries. Plain Node.js is enough.
+// eval.js: scores keyword vs semantic search with MRR and Recall@10.
+// Run: node eval.js
 const fs = require('fs');
 
 // --- 1. Load the inputs (already done for you) -----------------------------
-// test-set.csv has a header row, then: query,correct_post_ids
-// correct_post_ids may be a semicolon list, e.g. "1024;1025".
 function loadTestSet(path) {
   const lines = fs.readFileSync(path, 'utf8').trim().split('\n').slice(1);
   return lines.map(line => {
@@ -13,32 +11,57 @@ function loadTestSet(path) {
   });
 }
 const testSet = loadTestSet('test-set.csv');
-
-// search-results.json maps each query to the top-10 ranked post_id lists that
-// each system returned: { "<query>": { keyword: [...], semantic: [...] } }
 const results = JSON.parse(fs.readFileSync('search-results.json', 'utf8'));
 
-// --- 2. TODO: Reciprocal Rank ----------------------------------------------
-// Return 1 / (rank of the FIRST correct id in rankedIds). Return 0 if none of
-// the correct ids appear in rankedIds. Rank is 1-based (first result = rank 1).
-function reciprocalRank(rankedIds, correctIds) {
-  // TODO: implement
-}
-
-// Helper: the 1-based rank of the first correct id, or null if it is a miss.
+// --- 2. Reciprocal Rank ----------------------------------------------------
+// Rank (1-based) of the FIRST correct id in the ranked list, or null on a miss.
 function rankOf(rankedIds, correctIds) {
-  // TODO: implement (used only to print the comparison table)
+  const idx = rankedIds.findIndex(id => correctIds.includes(id));
+  return idx === -1 ? null : idx + 1;
 }
 
-// --- 3. TODO: run the evaluation loop --------------------------------------
-// For every query: look up its keyword and semantic ranked lists, compute the
-// reciprocal rank of each, accumulate the RRs, and count a "hit" whenever the
-// correct answer was found in the top 10 (RR > 0).
-// Then compute:
-//   keywordMRR, semanticMRR         = average RR across all queries
-//   keywordRecall, semanticRecall   = hits / number of queries
+// 1 / rank of the first correct id; 0 if no correct id is in the list.
+function reciprocalRank(rankedIds, correctIds) {
+  const rank = rankOf(rankedIds, correctIds);
+  return rank === null ? 0 : 1 / rank;
+}
 
-// --- 4. TODO: print a markdown comparison table ----------------------------
-// Print one row per query: | query | keyword rank | semantic rank |  (use "miss"
-// when the answer was not in the top 10), then a final **Summary** row with
-// MRR and Recall@10 for each system, each rounded to 2 decimals.
+// --- 3. Evaluation loop ----------------------------------------------------
+const totals = {
+  keyword: { rrSum: 0, hits: 0 },
+  semantic: { rrSum: 0, hits: 0 },
+};
+const rows = [];
+
+for (const { query, correctIds } of testSet) {
+  const entry = results[query];
+  if (!entry) throw new Error(`No search results found for query: "${query}"`);
+
+  const ranks = {};
+  for (const system of ['keyword', 'semantic']) {
+    const rr = reciprocalRank(entry[system], correctIds);
+    totals[system].rrSum += rr;
+    if (rr > 0) totals[system].hits += 1; // correct answer was in the top 10
+    ranks[system] = rankOf(entry[system], correctIds);
+  }
+  rows.push({ query, ranks });
+}
+
+const n = testSet.length;
+const keywordMRR = totals.keyword.rrSum / n;
+const semanticMRR = totals.semantic.rrSum / n;
+const keywordRecall = totals.keyword.hits / n;
+const semanticRecall = totals.semantic.hits / n;
+
+// --- 4. Markdown comparison table ------------------------------------------
+const fmt = rank => (rank === null ? 'miss' : String(rank));
+
+console.log('| Query | Keyword rank | Semantic rank |');
+console.log('|---|---|---|');
+for (const { query, ranks } of rows) {
+  console.log(`| ${query} | ${fmt(ranks.keyword)} | ${fmt(ranks.semantic)} |`);
+}
+console.log(
+  `| **Summary** | **MRR ${keywordMRR.toFixed(2)} \u00b7 Recall@10 ${keywordRecall.toFixed(2)}** | ` +
+  `**MRR ${semanticMRR.toFixed(2)} \u00b7 Recall@10 ${semanticRecall.toFixed(2)}** |`
+);
