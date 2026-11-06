@@ -1,44 +1,71 @@
-// eval.js starter. Fill in the four TODOs, then run: node eval.js
-// You should not need any libraries. Plain Node.js is enough.
-const fs = require('fs');
+import fs from "fs";
 
-// --- 1. Load the inputs (already done for you) -----------------------------
-// test-set.csv has a header row, then: query,correct_post_ids
-// correct_post_ids may be a semicolon list, e.g. "1024;1025".
-function loadTestSet(path) {
-  const lines = fs.readFileSync(path, 'utf8').trim().split('\n').slice(1);
-  return lines.map(line => {
-    const [query, ids] = line.split(',');
-    return { query, correctIds: ids.split(';').map(Number) };
-  });
+// 1. Load test-set.csv and search-results.json
+const csvContent = fs.readFileSync("test-set.csv", "utf8").trim();
+const searchResults = JSON.parse(fs.readFileSync("search-results.json", "utf8"));
+
+// 2. Parse test-set.csv
+const rawLines = csvContent.split("\n").map((line) => line.trim()).filter(Boolean);
+
+// Remove CSV header if present
+const dataLines = rawLines[0].toLowerCase().startsWith("query")
+  ? rawLines.slice(1)
+  : rawLines;
+
+const testCases = dataLines.map((line) => {
+  const lastCommaIndex = line.lastIndexOf(",");
+  const query = line.slice(0, lastCommaIndex).replace(/^"|"$/g, "").trim();
+  const rawIds = line.slice(lastCommaIndex + 1).replace(/^"|"$/g, "").trim();
+  const correctIds = rawIds.split(";").map((id) => Number(id.trim()));
+  return { query, correctIds };
+});
+
+// Helper function to evaluate rank, reciprocal rank, and hit count
+function evaluateQuery(rankedList, correctIds) {
+  const validIds = new Set(correctIds);
+
+  for (let i = 0; i < rankedList.length; i++) {
+    if (validIds.has(Number(rankedList[i]))) {
+      const rank = i + 1; // 1-based position
+      return { rankDisplay: String(rank), rr: 1 / rank, hit: 1 };
+    }
+  }
+
+  return { rankDisplay: "miss", rr: 0, hit: 0 };
 }
-const testSet = loadTestSet('test-set.csv');
 
-// search-results.json maps each query to the top-10 ranked post_id lists that
-// each system returned: { "<query>": { keyword: [...], semantic: [...] } }
-const results = JSON.parse(fs.readFileSync('search-results.json', 'utf8'));
+// 3. Run evaluation loop
+let keywordTotalRR = 0;
+let keywordHits = 0;
+let semanticTotalRR = 0;
+let semanticHits = 0;
 
-// --- 2. TODO: Reciprocal Rank ----------------------------------------------
-// Return 1 / (rank of the FIRST correct id in rankedIds). Return 0 if none of
-// the correct ids appear in rankedIds. Rank is 1-based (first result = rank 1).
-function reciprocalRank(rankedIds, correctIds) {
-  // TODO: implement
+const rows = [];
+
+for (const { query, correctIds } of testCases) {
+  const queryResults = searchResults[query] || { keyword: [], semantic: [] };
+
+  const kw = evaluateQuery(queryResults.keyword || [], correctIds);
+  const sem = evaluateQuery(queryResults.semantic || [], correctIds);
+
+  keywordTotalRR += kw.rr;
+  keywordHits += kw.hit;
+  semanticTotalRR += sem.rr;
+  semanticHits += sem.hit;
+
+  rows.push(`| ${query} | ${kw.rankDisplay} | ${sem.rankDisplay} |`);
 }
 
-// Helper: the 1-based rank of the first correct id, or null if it is a miss.
-function rankOf(rankedIds, correctIds) {
-  // TODO: implement (used only to print the comparison table)
-}
+const totalQueries = testCases.length;
+const kwMRR = (keywordTotalRR / totalQueries).toFixed(2);
+const kwRecall = (keywordHits / totalQueries).toFixed(2);
+const semMRR = (semanticTotalRR / totalQueries).toFixed(2);
+const semRecall = (semanticHits / totalQueries).toFixed(2);
 
-// --- 3. TODO: run the evaluation loop --------------------------------------
-// For every query: look up its keyword and semantic ranked lists, compute the
-// reciprocal rank of each, accumulate the RRs, and count a "hit" whenever the
-// correct answer was found in the top 10 (RR > 0).
-// Then compute:
-//   keywordMRR, semanticMRR         = average RR across all queries
-//   keywordRecall, semanticRecall   = hits / number of queries
-
-// --- 4. TODO: print a markdown comparison table ----------------------------
-// Print one row per query: | query | keyword rank | semantic rank |  (use "miss"
-// when the answer was not in the top 10), then a final **Summary** row with
-// MRR and Recall@10 for each system, each rounded to 2 decimals.
+// 4. Output Markdown Table
+console.log("| Query | Keyword rank | Semantic rank |");
+console.log("|---|---|---|");
+rows.forEach((row) => console.log(row));
+console.log(
+  `| **Summary** | **MRR ${kwMRR} · Recall@10 ${kwRecall}** | **MRR ${semMRR} · Recall@10 ${semRecall}** |`
+);

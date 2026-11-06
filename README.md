@@ -48,7 +48,7 @@ A correct `eval.js` prints exactly this table. If your numbers differ, your metr
 | why did my query get slower after I added an index | miss | 1 |
 | what does ACID actually guarantee | 2 | 1 |
 | how do I keep my postgres online while changing the schema | 6 | 3 |
-| my background jobs stop after every deploy | miss | 2 |
+| my background jobs stop after every deploy | miss | 2 |git add eval.js README.md
 | how do I let my database accept more writes per second | 4 | 1 |
 | sql or nosql for a new product | 1 | 3 |
 | why does my redis memory keep climbing | miss | 2 |
