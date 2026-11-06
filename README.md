@@ -84,3 +84,7 @@ Wire each into `async keywordSearch(query)` and `async semanticSearch(query)` re
 ## Interpretation
 
 Semantic search performs better overall than keyword search, achieving an MRR of 0.67 and Recall@10 of 1.00 compared with 0.30 and 0.60 for keyword search. Keyword search performs better on the queries "redis or memcached for caching" and "sql or nosql for a new product", where exact technology names and comparison terms help identify relevant results. Semantic search wins on the remaining eight queries because it understands the meaning and context of natural-language problems rather than depending only on exact word matches. These queries commonly describe practical technical issues or ask questions using conversational language. Although keyword search is weaker overall, a team should retain it because exact keyword matching can still produce better results for specific queries and complement semantic search in a hybrid retrieval system.
+
+## Submission
+
+This repository contains the completed Retrieval Metrics Mini Project, including the evaluation implementation, comparison results, and interpretation of MRR and Recall@10.
