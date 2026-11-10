@@ -19,3 +19,10 @@
 ### Interpretation
 
 Semantic search performs better overall than keyword search in both MRR and Recall@10. It achieves an MRR of 0.67 and Recall@10 of 1.00, while keyword search achieves an MRR of 0.30 and Recall@10 of 0.60. Keyword search performs well for queries such as "redis or memcached for caching" and "sql or nosql for a new product", where exact technical terms are important. Semantic search performs better for queries involving symptoms, paraphrased questions, and meaning-based searches. A team should keep keyword search because it can retrieve exact technical terms effectively, and combining both systems can improve overall search quality.
+
+### How to Run
+
+Run the evaluation script using:
+
+```bash
+node eval.js
