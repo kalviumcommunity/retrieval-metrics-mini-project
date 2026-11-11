@@ -1,44 +1,116 @@
-// eval.js starter. Fill in the four TODOs, then run: node eval.js
-// You should not need any libraries. Plain Node.js is enough.
+
+// eval.js — Retrieval Metrics Evaluation
+// Run with: node eval.js
+
 const fs = require('fs');
 
-// --- 1. Load the inputs (already done for you) -----------------------------
-// test-set.csv has a header row, then: query,correct_post_ids
-// correct_post_ids may be a semicolon list, e.g. "1024;1025".
+// 1. Load the test data
 function loadTestSet(path) {
   const lines = fs.readFileSync(path, 'utf8').trim().split('\n').slice(1);
+
   return lines.map(line => {
     const [query, ids] = line.split(',');
-    return { query, correctIds: ids.split(';').map(Number) };
+    return {
+      query,
+      correctIds: ids.split(';').map(Number)
+    };
   });
 }
+
 const testSet = loadTestSet('test-set.csv');
 
-// search-results.json maps each query to the top-10 ranked post_id lists that
-// each system returned: { "<query>": { keyword: [...], semantic: [...] } }
-const results = JSON.parse(fs.readFileSync('search-results.json', 'utf8'));
+const results = JSON.parse(
+  fs.readFileSync('search-results.json', 'utf8')
+);
 
-// --- 2. TODO: Reciprocal Rank ----------------------------------------------
-// Return 1 / (rank of the FIRST correct id in rankedIds). Return 0 if none of
-// the correct ids appear in rankedIds. Rank is 1-based (first result = rank 1).
+// 2. Calculate Reciprocal Rank
 function reciprocalRank(rankedIds, correctIds) {
-  // TODO: implement
+  const rank = rankOf(rankedIds, correctIds);
+
+  if (rank === null) {
+    return 0;
+  }
+
+  return 1 / rank;
 }
 
-// Helper: the 1-based rank of the first correct id, or null if it is a miss.
+// Find the first correct result's position
 function rankOf(rankedIds, correctIds) {
-  // TODO: implement (used only to print the comparison table)
+  const index = rankedIds.findIndex(id => correctIds.includes(id));
+
+  if (index === -1) {
+    return null;
+  }
+
+  return index + 1;
 }
 
-// --- 3. TODO: run the evaluation loop --------------------------------------
-// For every query: look up its keyword and semantic ranked lists, compute the
-// reciprocal rank of each, accumulate the RRs, and count a "hit" whenever the
-// correct answer was found in the top 10 (RR > 0).
-// Then compute:
-//   keywordMRR, semanticMRR         = average RR across all queries
-//   keywordRecall, semanticRecall   = hits / number of queries
+// 3. Run the evaluation
+let keywordTotalRR = 0;
+let semanticTotalRR = 0;
 
-// --- 4. TODO: print a markdown comparison table ----------------------------
-// Print one row per query: | query | keyword rank | semantic rank |  (use "miss"
-// when the answer was not in the top 10), then a final **Summary** row with
-// MRR and Recall@10 for each system, each rounded to 2 decimals.
+let keywordHits = 0;
+let semanticHits = 0;
+
+const numberOfQueries = testSet.length;
+
+const tableRows = [];
+
+for (const test of testSet) {
+  const query = test.query;
+  const correctIds = test.correctIds;
+
+  const keywordResults = results[query].keyword;
+  const semanticResults = results[query].semantic;
+
+  const keywordRank = rankOf(keywordResults, correctIds);
+  const semanticRank = rankOf(semanticResults, correctIds);
+
+  const keywordRR = reciprocalRank(keywordResults, correctIds);
+  const semanticRR = reciprocalRank(semanticResults, correctIds);
+
+  keywordTotalRR += keywordRR;
+  semanticTotalRR += semanticRR;
+
+  if (keywordRR > 0) {
+    keywordHits++;
+  }
+
+  if (semanticRR > 0) {
+    semanticHits++;
+  }
+
+  tableRows.push({
+    query,
+    keywordRank,
+    semanticRank
+  });
+}
+
+// Calculate MRR and Recall@10
+const keywordMRR = keywordTotalRR / numberOfQueries;
+const semanticMRR = semanticTotalRR / numberOfQueries;
+
+const keywordRecall = keywordHits / numberOfQueries;
+const semanticRecall = semanticHits / numberOfQueries;
+
+// 4. Print the Markdown comparison table
+console.log('| Query | Keyword rank | Semantic rank |');
+console.log('|---|---:|---:|');
+
+for (const row of tableRows) {
+  const keyword = row.keywordRank === null
+    ? 'miss'
+    : row.keywordRank;
+
+  const semantic = row.semanticRank === null
+    ? 'miss'
+    : row.semanticRank;
+
+  console.log(`| ${row.query} | ${keyword} | ${semantic} |`);
+}
+
+// Print summary
+console.log(
+  `| **Summary** | MRR: ${keywordMRR.toFixed(2)}, Recall@10: ${keywordRecall.toFixed(2)} | MRR: ${semanticMRR.toFixed(2)}, Recall@10: ${semanticRecall.toFixed(2)} |`
+);
