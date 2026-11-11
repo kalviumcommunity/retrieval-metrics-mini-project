@@ -1,44 +1,85 @@
-// eval.js starter. Fill in the four TODOs, then run: node eval.js
-// You should not need any libraries. Plain Node.js is enough.
 const fs = require('fs');
+const path = require('path');
 
-// --- 1. Load the inputs (already done for you) -----------------------------
-// test-set.csv has a header row, then: query,correct_post_ids
-// correct_post_ids may be a semicolon list, e.g. "1024;1025".
-function loadTestSet(path) {
-  const lines = fs.readFileSync(path, 'utf8').trim().split('\n').slice(1);
-  return lines.map(line => {
-    const [query, ids] = line.split(',');
-    return { query, correctIds: ids.split(';').map(Number) };
-  });
-}
-const testSet = loadTestSet('test-set.csv');
-
-// search-results.json maps each query to the top-10 ranked post_id lists that
-// each system returned: { "<query>": { keyword: [...], semantic: [...] } }
-const results = JSON.parse(fs.readFileSync('search-results.json', 'utf8'));
-
-// --- 2. TODO: Reciprocal Rank ----------------------------------------------
-// Return 1 / (rank of the FIRST correct id in rankedIds). Return 0 if none of
-// the correct ids appear in rankedIds. Rank is 1-based (first result = rank 1).
-function reciprocalRank(rankedIds, correctIds) {
-  // TODO: implement
+// Helper to parse simple CSV file (query,correct_post_ids)
+function loadTestSet(filePath) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+    const testSet = [];
+    
+    const startIndex = lines[0].startsWith('query') ? 1 : 0;
+    
+    for (let i = startIndex; i < lines.length; i++) {
+        const lastCommaIndex = lines[i].lastIndexOf(',');
+        const query = lines[i].substring(0, lastCommaIndex).replace(/^["']|["']$/g, '');
+        const idsStr = lines[i].substring(lastCommaIndex + 1).replace(/^["']|["']$/g, '');
+        const correctIds = idsStr.split(';').map(id => id.trim());
+        
+        testSet.push({ query, correctIds });
+    }
+    return testSet;
 }
 
-// Helper: the 1-based rank of the first correct id, or null if it is a miss.
-function rankOf(rankedIds, correctIds) {
-  // TODO: implement (used only to print the comparison table)
+// Load files
+const testSetPath = path.join(__dirname, 'test-set.csv');
+const searchResultsPath = path.join(__dirname, 'search-results.json');
+
+const testSet = loadTestSet(testSetPath);
+const searchResults = JSON.parse(fs.readFileSync(searchResultsPath, 'utf-8'));
+
+// TODO 1: Reciprocal Rank function
+function getReciprocalRank(rankedList, correctIds) {
+    for (let i = 0; i < rankedList.length; i++) {
+        const docId = String(rankedList[i]);
+        if (correctIds.includes(docId)) {
+            const rank = i + 1;
+            return { rank, rr: 1 / rank };
+        }
+    }
+    return { rank: 'miss', rr: 0 };
 }
 
-// --- 3. TODO: run the evaluation loop --------------------------------------
-// For every query: look up its keyword and semantic ranked lists, compute the
-// reciprocal rank of each, accumulate the RRs, and count a "hit" whenever the
-// correct answer was found in the top 10 (RR > 0).
-// Then compute:
-//   keywordMRR, semanticMRR         = average RR across all queries
-//   keywordRecall, semanticRecall   = hits / number of queries
+// TODO 2 & 3: Run the evaluation loop and accumulate metrics
+let keywordRRSum = 0;
+let keywordHits = 0;
+let semanticRRSum = 0;
+let semanticHits = 0;
 
-// --- 4. TODO: print a markdown comparison table ----------------------------
-// Print one row per query: | query | keyword rank | semantic rank |  (use "miss"
-// when the answer was not in the top 10), then a final **Summary** row with
-// MRR and Recall@10 for each system, each rounded to 2 decimals.
+const totalQueries = testSet.length;
+const resultsTable = [];
+
+for (const item of testSet) {
+    const { query, correctIds } = item;
+    const systemResult = searchResults[query] || { keyword: [], semantic: [] };
+
+    const kwEval = getReciprocalRank(systemResult.keyword, correctIds);
+    const semEval = getReciprocalRank(systemResult.semantic, correctIds);
+
+    keywordRRSum += kwEval.rr;
+    if (kwEval.rank !== 'miss') keywordHits++;
+
+    semanticRRSum += semEval.rr;
+    if (semEval.rank !== 'miss') semanticHits++;
+
+    resultsTable.push({
+        query,
+        kwRank: kwEval.rank,
+        semRank: semEval.rank
+    });
+}
+
+const keywordMRR = (keywordRRSum / totalQueries).toFixed(2);
+const keywordRecall = (keywordHits / totalQueries).toFixed(2);
+
+const semanticMRR = (semanticRRSum / totalQueries).toFixed(2);
+const semanticRecall = (semanticHits / totalQueries).toFixed(2);
+
+// TODO 4: Print the Markdown comparison table
+console.log('| Query | Keyword rank | Semantic rank |');
+console.log('|---|---|---|');
+
+for (const row of resultsTable) {
+    console.log(`| ${row.query} | ${row.kwRank} | ${row.semRank} |`);
+}
+
+console.log(`| **Summary** | **MRR ${keywordMRR} · Recall@10 ${keywordRecall}** | **MRR ${semanticMRR} · Recall@10 ${semanticRecall}** |`);
