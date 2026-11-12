@@ -19,3 +19,10 @@
 ## Interpretation
 
 Semantic search performs better overall, achieving a higher MRR of 0.67 and Recall@10 of 1.00 compared to keyword search. Keyword search performs better on the queries "redis or memcached for caching" and "sql or nosql for a new product", because they contain specific technical terms that closely match the relevant posts. Semantic search wins on queries about old Redis data, adding semantic search, slower queries, ACID, database schema changes, background jobs, database writes, and Redis memory growth. These queries describe problems or concepts in natural language, so semantic search understands their meaning even when the exact words differ. A team would still keep keyword search because it can find exact technical terms and complement semantic search when both systems handle different types of queries.
+
+
+## How to Run
+
+Run the evaluation using:
+
+node eval.js
