@@ -55,6 +55,10 @@ A correct `eval.js` prints exactly this table. If your numbers differ, your metr
 | **Summary** | **MRR 0.30 · Recall@10 0.60** | **MRR 0.67 · Recall@10 1.00** |
 ```
 
+## Interpretation
+
+Semantic search is clearly the stronger system overall: it wins on both metrics, scoring an MRR of 0.67 and a perfect Recall@10 of 1.00, compared to keyword search's MRR of 0.30 and Recall@10 of 0.60. Keyword search only wins on two queries — "redis or memcached for caching" (rank 1) and "sql or nosql for a new product" (rank 1) — and what those have in common is that they use rare, exact technical terms that appear verbatim in the correct document, which is exactly where token-based matching excels. Semantic search wins the other eight queries, and those tend to be phrased as symptoms or paraphrased questions ("my redis cache keeps showing old data", "why did my query get slower after I added an index") where understanding the meaning matters more than matching the precise wording. A team would still keep the weaker keyword search around because the two systems win on different queries — keyword is more reliable for rare exact terms — so a hybrid approach that combines both would outperform either one alone.
+
 ## Write up your findings
 
 Add a short interpretation (4 to 6 sentences) to this README or a `RESULT.md`:
