@@ -55,6 +55,10 @@ A correct `eval.js` prints exactly this table. If your numbers differ, your metr
 | **Summary** | **MRR 0.30 · Recall@10 0.60** | **MRR 0.67 · Recall@10 1.00** |
 ```
 
+## Interpretation
+
+Semantic search is better overall, with a higher MRR (0.67 vs. 0.30) and Recall@10 (1.00 vs. 0.60). Keyword search ranks the correct result higher for “redis or memcached for caching” and “sql or nosql for a new product”; both queries explicitly name technologies and ask for a direct comparison. Semantic search ranks the correct result higher on the other eight queries, which tend to describe a problem or ask a question in natural language rather than repeat a specific document title. Its results are also more consistent, finding a correct answer in the top 10 for every query. A team might still keep keyword search because it can rank direct, exact-term queries better, complementing semantic search on other queries.
+
 ## Write up your findings
 
 Add a short interpretation (4 to 6 sentences) to this README or a `RESULT.md`:
