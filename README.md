@@ -6,7 +6,7 @@ In this mini project you will implement `eval.js` so it scores two search system
 
 ## What is in this project
 
-- `eval.js` : the file you build. It has four TODOs; the file-loading is done for you.
+- `eval.js` : evaluates the keyword and semantic search rankings using MRR and Recall@10.
 - `test-set.csv` : 10 `(query, correct_post_ids)` pairs. A row may list more than one correct answer, semicolon-separated (for example `1024;1025`).
 - `search-results.json` : for each query, the top-10 ranked `post_id` list each system returned, shaped as `{ "<query>": { "keyword": [...], "semantic": [...] } }`. Array position 0 is rank 1.
 - `posts-dataset.csv` : the 35 posts the ids refer to (for sanity-checking; not required by the core build).
@@ -55,13 +55,9 @@ A correct `eval.js` prints exactly this table. If your numbers differ, your metr
 | **Summary** | **MRR 0.30 · Recall@10 0.60** | **MRR 0.67 · Recall@10 1.00** |
 ```
 
-## Write up your findings
+## Findings
 
-Add a short interpretation (4 to 6 sentences) to this README or a `RESULT.md`:
-- Which system is better overall, and on which metric(s)?
-- Which queries did keyword search win, and what do those queries have in common?
-- Which queries did semantic search win, and what do those have in common?
-- One sentence on why a team would still keep the weaker system around (hint: the two systems win on different queries).
+Semantic search performs better overall, with a higher MRR (0.67 vs. 0.30) and Recall@10 (1.00 vs. 0.60). Keyword search ranks the right result higher for “redis or memcached for caching” and “sql or nosql for a new product”; both queries name the compared technologies directly. Semantic search wins on the other eight queries, especially when they describe an issue or goal in conversational language instead of using the wording found in a post. This suggests semantic matching handles paraphrases and intent more reliably in this dataset. A team could still keep keyword search because it can rank exact terminology and product names especially well.
 
 ## Take it further (optional)
 
