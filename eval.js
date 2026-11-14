@@ -22,23 +22,57 @@ const results = JSON.parse(fs.readFileSync('search-results.json', 'utf8'));
 // Return 1 / (rank of the FIRST correct id in rankedIds). Return 0 if none of
 // the correct ids appear in rankedIds. Rank is 1-based (first result = rank 1).
 function reciprocalRank(rankedIds, correctIds) {
-  // TODO: implement
+  const rank = rankOf(rankedIds, correctIds);
+  return rank === null ? 0 : 1 / rank;
 }
 
 // Helper: the 1-based rank of the first correct id, or null if it is a miss.
 function rankOf(rankedIds, correctIds) {
-  // TODO: implement (used only to print the comparison table)
+  const correctIdSet = new Set(correctIds);
+  const index = rankedIds.findIndex(id => correctIdSet.has(id));
+  return index === -1 ? null : index + 1;
 }
 
-// --- 3. TODO: run the evaluation loop --------------------------------------
+// --- 3. Run the evaluation loop --------------------------------------------
 // For every query: look up its keyword and semantic ranked lists, compute the
 // reciprocal rank of each, accumulate the RRs, and count a "hit" whenever the
 // correct answer was found in the top 10 (RR > 0).
 // Then compute:
 //   keywordMRR, semanticMRR         = average RR across all queries
 //   keywordRecall, semanticRecall   = hits / number of queries
+const totals = {
+  keyword: { reciprocalRank: 0, hits: 0 },
+  semantic: { reciprocalRank: 0, hits: 0 },
+};
 
-// --- 4. TODO: print a markdown comparison table ----------------------------
+for (const { query, correctIds } of testSet) {
+  for (const system of ['keyword', 'semantic']) {
+    const rankedIds = results[query][system];
+    const rr = reciprocalRank(rankedIds, correctIds);
+    totals[system].reciprocalRank += rr;
+    if (rr > 0) totals[system].hits += 1;
+  }
+}
+
+const queryCount = testSet.length;
+const keywordMRR = totals.keyword.reciprocalRank / queryCount;
+const semanticMRR = totals.semantic.reciprocalRank / queryCount;
+const keywordRecall = totals.keyword.hits / queryCount;
+const semanticRecall = totals.semantic.hits / queryCount;
+
+// --- 4. Print a markdown comparison table ----------------------------------
 // Print one row per query: | query | keyword rank | semantic rank |  (use "miss"
 // when the answer was not in the top 10), then a final **Summary** row with
 // MRR and Recall@10 for each system, each rounded to 2 decimals.
+console.log('| Query | Keyword rank | Semantic rank |');
+console.log('|---|---|---|');
+
+for (const { query, correctIds } of testSet) {
+  const keywordRank = rankOf(results[query].keyword, correctIds) ?? 'miss';
+  const semanticRank = rankOf(results[query].semantic, correctIds) ?? 'miss';
+  console.log(`| ${query} | ${keywordRank} | ${semanticRank} |`);
+}
+
+console.log(
+  `| **Summary** | **MRR ${keywordMRR.toFixed(2)} · Recall@10 ${keywordRecall.toFixed(2)}** | **MRR ${semanticMRR.toFixed(2)} · Recall@10 ${semanticRecall.toFixed(2)}** |`
+);
