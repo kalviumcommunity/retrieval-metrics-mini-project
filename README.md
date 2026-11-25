@@ -58,10 +58,15 @@ A correct `eval.js` prints exactly this table. If your numbers differ, your metr
 ## Write up your findings
 
 Add a short interpretation (4 to 6 sentences) to this README or a `RESULT.md`:
+
 - Which system is better overall, and on which metric(s)?
 - Which queries did keyword search win, and what do those queries have in common?
 - Which queries did semantic search win, and what do those have in common?
 - One sentence on why a team would still keep the weaker system around (hint: the two systems win on different queries).
+
+### Interpretation of Results
+
+Semantic search performs better overall than keyword search in both MRR and Recall@10. Keyword search performs better on "redis or memcached for caching" and "sql or nosql for a new product", where exact keyword matching is useful. Semantic search performs better on queries involving symptoms, paraphrased questions, and different ways of expressing the same concept. It achieves an MRR of 0.67 and Recall@10 of 1.00, meaning it retrieves a correct answer for all ten queries and generally ranks it higher. A team would still keep keyword search because it performs well on exact technical terms, and combining both approaches can improve retrieval performance.
 
 ## Take it further (optional)
 
